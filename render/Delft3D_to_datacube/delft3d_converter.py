@@ -34,7 +34,7 @@ class Delft3DConverter:
         
     def load_dataset(self):
         """Load the Delft3D NetCDF dataset."""
-        self.trim_ds = xr.open_dataset(self.trim_file_path)
+        self.trim_ds = xr.open_dataset(self.trim_file_path, decode_timedelta=True)
         print(f"File loaded: {self.trim_file_path}")
         return self
     
@@ -219,9 +219,14 @@ class Delft3DConverter:
         if self.cube is None:
             raise ValueError("No DataCube to save. Call create_datacube() first.")
         
-        # Delete existing file if needed
-        if os.path.exists(output_path) and overwrite:
-            os.remove(output_path)
+        # Handle existing file according to overwrite flag
+        if os.path.exists(output_path):
+            if overwrite:
+                os.remove(output_path)
+            else:
+                raise FileExistsError(
+                    f"Output file '{output_path}' already exists and overwrite is set to False."
+                )
         
         # Create xarray Dataset with swapped x and y
         data_vars = {}
@@ -235,8 +240,8 @@ class Delft3DConverter:
         
         coords = {
             'time': self.cube.dim0_coords,
-            'x': self.cube.dim2_coords,  # x gets original y dimension coords
-            'y': self.cube.dim1_coords   # y gets original x dimension coords
+            'x': self.cube.dim2_coords,  # x gets original x dimension coords
+            'y': self.cube.dim1_coords   # y gets original y dimension coords
         }
         
         ds_save = xr.Dataset(data_vars, coords=coords)
