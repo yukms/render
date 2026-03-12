@@ -240,8 +240,8 @@ class Delft3DConverter:
         
         coords = {
             'time': self.cube.dim0_coords,
-            'x': self.cube.dim2_coords,  # x gets original x dimension coords
-            'y': self.cube.dim1_coords   # y gets original y dimension coords
+            'x': self.cube.dim2_coords,  # x gets original y dimension coords
+            'y': self.cube.dim1_coords   # y gets original x dimension coords
         }
         
         ds_save = xr.Dataset(data_vars, coords=coords)

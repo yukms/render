@@ -1,0 +1,17 @@
+# macOS
+.DS_Store
+
+# License and documentation
+LICENSE
+README.md
+
+# Data files
+*.nc
+
+# Analysis notebooks (output/scratch)
+sandplover_analysis.ipynb
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
