@@ -166,27 +166,31 @@ class Delft3DConverter:
         #     self.data_dict['velocity_direction'] = velocity_direction
         #     print(f"Velocity direction calculated")
         
+        # Transpose all variables from (time, M, N) to (time, N, M) = (time, x, y)
+        for key in self.data_dict:
+            self.data_dict[key] = np.transpose(self.data_dict[key], (0, 2, 1))
+
         print(f"Variables: {list(self.data_dict.keys())}")
         return self
-    
+
     def generate_dimensions(self):
         """Generate dimension information for DataCube."""
         if self.trim_ds is None:
             raise ValueError("Dataset not loaded. Call load_dataset() first.")
-        
+
         # Time coordinate
         if 'time' in self.trim_ds.coords:
             self.dimensions['time'] = self.trim_ds['time'].values
-        
+
         if len(self.data_dict) > 0:
             first_var = list(self.data_dict.values())[0]
-            shape = first_var.shape  # (time, M, N)
-            
-            # y and x coordinates
-            self.dimensions['y'] = np.arange(1, shape[1] + 1, dtype=float)
-            self.dimensions['x'] = np.arange(1, shape[2] + 1, dtype=float)
-            
-            print(f"Dimensions: time={shape[0]}, y={shape[1]}, x={shape[2]}")
+            shape = first_var.shape  # (time, N, M) = (time, x, y) after transpose
+
+            # x: dim1 (size N=227), y: dim2 (size M=302)
+            self.dimensions['x'] = np.arange(1, shape[1] + 1, dtype=float)
+            self.dimensions['y'] = np.arange(1, shape[2] + 1, dtype=float)
+
+            print(f"Dimensions: time={shape[0]}, x={shape[1]}, y={shape[2]}")
         
         return self
     
@@ -228,20 +232,18 @@ class Delft3DConverter:
                     f"Output file '{output_path}' already exists and overwrite is set to False."
                 )
         
-        # Create xarray Dataset with swapped x and y
+        # Create xarray Dataset — data is already in (time, x, y) order
         data_vars = {}
         for var_name in self.cube.variables:
-            # Transpose to swap y and x: (time, y, x) -> (time, x, y)
-            data_transposed = np.transpose(self.cube[var_name].data, (0, 2, 1))
             data_vars[var_name] = (
                 ['time', 'x', 'y'],
-                data_transposed
+                self.cube[var_name].data
             )
-        
+
         coords = {
             'time': self.cube.dim0_coords,
-            'x': self.cube.dim2_coords,  # x gets original y dimension coords
-            'y': self.cube.dim1_coords   # y gets original x dimension coords
+            'x': self.cube.dim1_coords,  # x coords (size N=227)
+            'y': self.cube.dim2_coords   # y coords (size M=302)
         }
         
         ds_save = xr.Dataset(data_vars, coords=coords)
